@@ -22,7 +22,7 @@ data AppState = AppState
   , nextSession    :: Integer
   , currentMessage :: Int
   , messages       :: [Message]
-  }
+  } deriving Generic
 
 data Message = Message
   { user      :: UserSession
@@ -59,7 +59,6 @@ modifyAppState_ :: (WithAppStateController m, Applicative m) => (AppState -> m A
 modifyAppState_ f = 
   let AppStateController {..} = ?appStateController
   in modifyAppStateController (fmap (,()) . f)
-
 
 withAppState :: WithAppStateController m => (AppState -> m a) -> m a
 withAppState f =  

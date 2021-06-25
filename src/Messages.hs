@@ -46,7 +46,6 @@ data ServerMessage
   = ServerConnected Integer 
   | ServerRegistered
   | ServerError Text
-  | ServerShutOut Text
   | ServerNewMessages [UserMessage]
   deriving (Generic, Show)
   

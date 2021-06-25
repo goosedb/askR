@@ -78,14 +78,13 @@ withoutLabel k v action =
 
 class Logged a where
   toLog :: a -> Text
-  -- default toLog :: Show a => a -> Text
-  -- toLog = pack . show 
-
+  
 instance Logged Text where
   toLog = id
 
 instance Logged Int where
   toLog = pack . show
+
 instance Logged Integer where
   toLog = pack . show
 

@@ -1,0 +1,59 @@
+2021-06-25 18:03:30.058 [Info] Starting server on port 5002
+2021-06-25 18:03:30.058 [Debug] Pinged all users
+2021-06-25 18:03:40.066 [Debug] Pinged all users
+2021-06-25 18:03:40.113 [Info] { #session=0 } Accepted new connection
+2021-06-25 18:03:40.113 [Info] { #session=0 } Registered user with name Kek
+2021-06-25 18:03:40.113 [Debug] { #name=Kek,#session=0 } Client sent pong with message: "pong"
+2021-06-25 18:03:43.374 [Info] { #session=1 } Accepted new connection
+2021-06-25 18:03:43.375 [Info] { #session=1 } Registered user with name Lol
+2021-06-25 18:03:43.375 [Debug] { #name=Lol,#session=1 } Client sent pong with message: "pong"
+2021-06-25 18:03:48.349 [Info] { #name=Kek,#session=0 } Accepted message
+2021-06-25 18:03:48.349 [Debug] { #name=Kek,#session=0 } Message: Hi!
+2021-06-25 18:03:48.349 [Info] { #name=Kek,#session=0 } Sending 1 messages to UserSession#1
+2021-06-25 18:03:48.349 [Debug] { #name=Kek,#session=0 } Messages: [ Kek#0: Hi! ]
+2021-06-25 18:03:48.349 [Info] { #name=Kek,#session=0 } Sending 1 messages to UserSession#0
+2021-06-25 18:03:48.349 [Debug] { #name=Kek,#session=0 } Messages: [ Kek#0: Hi! ]
+2021-06-25 18:03:48.350 [Debug] { #name=Lol,#session=1 } Last message set to 1
+2021-06-25 18:03:48.350 [Debug] { #name=Kek,#session=0 } Last message set to 1
+2021-06-25 18:03:50.067 [Debug] Pinged all users
+2021-06-25 18:03:50.068 [Debug] { #name=Lol,#session=1 } Client sent pong with message: "pong"
+2021-06-25 18:03:50.068 [Debug] { #name=Kek,#session=0 } Client sent pong with message: "pong"
+2021-06-25 18:03:53.349 [Info] { #name=Lol,#session=1 } Accepted message
+2021-06-25 18:03:53.349 [Debug] { #name=Lol,#session=1 } Message: Hello!
+2021-06-25 18:03:53.349 [Info] { #name=Lol,#session=1 } Sending 1 messages to UserSession#1
+2021-06-25 18:03:53.349 [Debug] { #name=Lol,#session=1 } Messages: [ Lol#1: Hello! ]
+2021-06-25 18:03:53.349 [Info] { #name=Lol,#session=1 } Sending 1 messages to UserSession#0
+2021-06-25 18:03:53.349 [Debug] { #name=Lol,#session=1 } Messages: [ Lol#1: Hello! ]
+2021-06-25 18:03:53.349 [Debug] { #name=Kek,#session=0 } Last message set to 2
+2021-06-25 18:03:53.350 [Debug] { #name=Lol,#session=1 } Last message set to 2
+2021-06-25 18:04:00.070 [Debug] Pinged all users
+2021-06-25 18:04:00.071 [Debug] { #name=Kek,#session=0 } Client sent pong with message: "pong"
+2021-06-25 18:04:00.071 [Debug] { #name=Lol,#session=1 } Client sent pong with message: "pong"
+2021-06-25 18:04:05.306 [Info] { #name=Kek,#session=0 } Accepted message
+2021-06-25 18:04:05.306 [Debug] { #name=Kek,#session=0 } Message: Ты лох
+2021-06-25 18:04:05.306 [Info] { #name=Kek,#session=0 } Sending 1 messages to UserSession#1
+2021-06-25 18:04:05.306 [Debug] { #name=Kek,#session=0 } Messages: [ Kek#0: Ты лох ]
+2021-06-25 18:04:05.306 [Info] { #name=Kek,#session=0 } Sending 1 messages to UserSession#0
+2021-06-25 18:04:05.306 [Debug] { #name=Kek,#session=0 } Messages: [ Kek#0: Ты лох ]
+2021-06-25 18:04:05.307 [Debug] { #name=Lol,#session=1 } Last message set to 3
+2021-06-25 18:04:05.307 [Debug] { #name=Kek,#session=0 } Last message set to 3
+2021-06-25 18:04:10.075 [Debug] Pinged all users
+2021-06-25 18:04:10.075 [Debug] { #name=Lol,#session=1 } Client sent pong with message: "pong"
+2021-06-25 18:04:10.075 [Debug] { #name=Kek,#session=0 } Client sent pong with message: "pong"
+2021-06-25 18:04:10.239 [Info] { #name=Lol,#session=1 } Accepted message
+2021-06-25 18:04:10.239 [Debug] { #name=Lol,#session=1 } Message: Нет ты
+2021-06-25 18:04:10.239 [Info] { #name=Lol,#session=1 } Sending 1 messages to UserSession#1
+2021-06-25 18:04:10.239 [Debug] { #name=Lol,#session=1 } Messages: [ Lol#1: Нет ты ]
+2021-06-25 18:04:10.239 [Info] { #name=Lol,#session=1 } Sending 1 messages to UserSession#0
+2021-06-25 18:04:10.239 [Debug] { #name=Lol,#session=1 } Messages: [ Lol#1: Нет ты ]
+2021-06-25 18:04:10.240 [Debug] { #name=Lol,#session=1 } Last message set to 4
+2021-06-25 18:04:10.240 [Debug] { #name=Kek,#session=0 } Last message set to 4
+2021-06-25 18:04:20.075 [Debug] Pinged all users
+2021-06-25 18:04:20.075 [Debug] { #name=Kek,#session=0 } Client sent pong with message: "pong"
+2021-06-25 18:04:20.076 [Debug] { #name=Lol,#session=1 } Client sent pong with message: "pong"
+2021-06-25 18:04:30.086 [Debug] Pinged all users
+2021-06-25 18:04:30.086 [Debug] { #name=Lol,#session=1 } Client sent pong with message: "pong"
+2021-06-25 18:04:30.087 [Debug] { #name=Kek,#session=0 } Client sent pong with message: "pong"
+2021-06-25 18:04:40.096 [Debug] Pinged all users
+2021-06-25 18:04:40.096 [Debug] { #name=Lol,#session=1 } Client sent pong with message: "pong"
+2021-06-25 18:04:40.096 [Debug] { #name=Kek,#session=0 } Client sent pong with message: "pong"

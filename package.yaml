@@ -29,6 +29,8 @@ dependencies:
 - unliftio
 - aeson
 - bytestring 
+- lens
+- generic-lens
 
 library:
   source-dirs: src
@@ -50,6 +52,7 @@ library:
   - -XTypeApplications
   - -XDeriveGeneric
   - -XViewPatterns
+  - -XOverloadedLabels
 
 executables:
   askR-exe:
