@@ -1,0 +1,74 @@
+name:                askR
+version:             0.1.0.0
+github:              "githubuser/askR"
+license:             BSD3
+author:              "Author name here"
+maintainer:          "example@example.com"
+copyright:           "2021 Author name here"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/githubuser/askR#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- mtl
+- websockets
+- time 
+- text 
+- containers 
+- unliftio
+- aeson
+- bytestring 
+
+library:
+  source-dirs: src
+  exposed-modules: 
+  - Server
+  ghc-options:
+  - -XImplicitParams
+  - -XConstraintKinds
+  - -XRankNTypes
+  - -XRecordWildCards
+  - -XQuantifiedConstraints
+  - -XBlockArguments
+  - -XOverloadedStrings
+  - -XDefaultSignatures
+  - -XTypeSynonymInstances
+  - -XFlexibleInstances
+  - -XScopedTypeVariables
+  - -XLambdaCase
+  - -XTypeApplications
+  - -XDeriveGeneric
+  - -XViewPatterns
+
+executables:
+  askR-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - askR
+
+tests:
+  askR-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - askR
