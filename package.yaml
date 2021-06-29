@@ -31,11 +31,14 @@ dependencies:
 - bytestring 
 - lens
 - generic-lens
+- vty
+- brick
 
 library:
   source-dirs: src
   exposed-modules: 
   - Server
+  - Client
   ghc-options:
   - -XImplicitParams
   - -XConstraintKinds
@@ -53,6 +56,7 @@ library:
   - -XDeriveGeneric
   - -XViewPatterns
   - -XOverloadedLabels
+  - -XNamedFieldPuns
 
 executables:
   askR-exe:

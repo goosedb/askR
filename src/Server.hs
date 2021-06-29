@@ -1,30 +1,13 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE NumericUnderscores #-}
 module Server where
 
 import Config
-    ( fromConfigGet,
-      withLoadedConfig,
-      ServerConfig(port, persistedMessages),
-      Config(server),
-      WithConfigLoader,
-      WithConfig )
 import Logger
-    ( (.&),
-      withLabel,
-      (&.),
-      putLog,
-      WithLogger,
-      LogLevel(Warning, Error, Info, Debug) )
+   
 import AppState
-    ( modifyAppState_,
-      modifyAppState,
-      getAppState,
-      WithAppStateController,
-      Message(Message, messageId, timestamp, text, user),
-      UserSession(..),
-      AppState(AppState, messages, currentMessage, nextSession,
-               userSessions) )
+ 
 import UnliftIO
     ( MonadIO(..),
       Exception(displayException),
@@ -33,27 +16,20 @@ import UnliftIO
 import qualified Data.Text.IO
 import Data.Text.Encoding ( decodeUtf8 )
 import Data.ByteString.Lazy ( toStrict, putStr )
-import Websockets
-    ( receiveMessage,
-      sendMessage,
-      acceptConnection,
-      WithWebSocketProvider )
-import Network.WebSockets (PendingConnection (pendingRequest), Connection, runServer, ConnectionException(..), sendDataMessage, runClient)
-import Time ( getTime, WithTimeProvider )
-import Control.Monad ( forever, forM_, void )
+import WebSockets 
+import Network.WebSockets 
+    ( PendingConnection (pendingRequest)
+    , Connection
+    , runServer
+    , ConnectionException(..)
+    , sendDataMessage
+    , runClient )
+import Time 
+import Control.Monad ( forever, forM_, void, unless )
 import Data.Text (Text, pack)
 import Messages
-    ( UserMessage(UserMessage, sessionId, name, messageId, timestamp,
-                  text),
-      MyMessage(AcceptedMessages, MyMessageIs),
-      MessageFromUser(MyClose, MyMessage, MyPing, MyPong),
-      MessageToUser(ServerPing, ServerPong, ServerClose),
-      MyNameIs(MyNameIs),
-      ToMessage,
-      ServerMessage(ServerNewMessages, ServerConnected, ServerRegistered,
-                    ServerError) )
-import Exception ( throw, catch, WithExceptions )
-import Thread ( delay, fork, WithThreading )
+import Exception 
+import Thread
 import Control.Lens ( (&), (%~) )
 import Data.Generics.Labels()
 
@@ -71,7 +47,7 @@ serverApp = withLoadedConfig do
   let serverPort = fromConfigGet (port . server)
   putLog Info $ "Starting server on port " &. serverPort
   void $ fork pingPong
-  withRunInIO \unlift -> runServer "localhost" serverPort (unlift . acceptUser)
+  withRunInIO \unlift -> runServer "0.0.0.0" serverPort (unlift . acceptUser)
 
 withProcessLabel :: WithLogger m => Text -> (WithLogger m => m a) -> m a
 withProcessLabel = withLabel "process"
@@ -106,6 +82,9 @@ acceptUser pendingConnection = do
         sendMessage connection ServerRegistered
         putLog Info $ "Registered user with name " &. name
         withLabel "name" name do
+          withLoadedAppState do 
+            sendMessagesForUser user
+          broadcast sendOnlineUsers
           sendMessage connection (ServerPing "ping!")
           messageHandler user
           deleteUser user
@@ -128,7 +107,7 @@ messageHandler session@UserSession {..} =
           handler
         Right parsed -> parsed & \case
           MyMessage (MyMessageIs msg) -> withLoadedConfig do
-            acceptMessage session msg >> broadcast >> handler
+            acceptMessage session msg >> broadcast sendMessagesForUser >> handler
           MyMessage (AcceptedMessages lastMessage) -> do 
             updateUserState session lastMessage >> handler
           MyPing msg -> do
@@ -139,12 +118,15 @@ messageHandler session@UserSession {..} =
             handler
           MyClose msg -> do
             putLog Info $ "Client closed connection with message: " &. msg
+            deleteUser session >> broadcast sendOnlineUsers
 
       catchWebsocketError = \case 
         CloseRequest _ msg -> do
           putLog Info $ "Client closed connection with message: " &. decodeUtf8 (toStrict msg)
+          deleteUser session >> broadcast sendOnlineUsers
         ConnectionClosed -> do
           putLog Warning "Client closed connection unexpectedly"
+          deleteUser session >> broadcast sendOnlineUsers
         ParseException msg -> do
           putLog Warning $ "Client sent invalid request: " &. pack msg
           sendMessage connection (ServerError $ pack msg)
@@ -181,7 +163,9 @@ acceptMessage user@UserSession {..} rawMessage = do
 
 deleteUser :: (Monad m, WithAppStateController m, WithLogger m) => UserSession -> m ()
 deleteUser UserSession { sessionId = session } = do
-  modifyAppState_ $ pure . (#userSessions %~ filter (is session . AppState.sessionId))
+  modifyAppState_ $ pure . (#userSessions %~ filter (not . is session . AppState.sessionId))
+  AppState {..} <- loadAppState
+  putLog Debug $ pack $ show userSessions
   putLog Info "User disconnected"
   where is = (==)
 
@@ -191,18 +175,45 @@ broadcast ::
   , WithWebSocketProvider m
   , WithAppStateController m
   , WithLogger m
-  ) => m ()
-broadcast = do
-  AppState {..} <- getAppState 
-  forM_ userSessions \user@UserSession { name = _, .. } -> do
+  ) => (WithAppState => UserSession -> m ()) ->  m ()
+broadcast f = withLoadedAppState do
+  let AppState {..} = getAppState 
+  forM_ userSessions f
+
+sendMessagesForUser :: 
+  ( Monad m
+  , WithExceptions m
+  , WithWebSocketProvider m
+  , WithAppState
+  , WithAppStateController m
+  , WithLogger m
+  , WithTimeProvider m
+  ) => UserSession -> m ()
+sendMessagesForUser user@UserSession { name = _, .. } = do
+    let AppState {..} = getAppState
     let howManyMessageToSend = currentMessage - acceptedMessage
     let messageToSend = map (\Message {..} -> UserMessage 
           { sessionId = AppState.sessionId user
           , name = AppState.name user, ..} ) 
           $ take howManyMessageToSend messages
-    putLog Info $ "Sending " &. howManyMessageToSend .& " messages to " &. user
-    putLog Debug $ "Messages: " &. messageToSend
-    sendMessageCloseProtected user (ServerNewMessages messageToSend)
+    unless (null messageToSend) do
+      putLog Info $ "Sending " &. howManyMessageToSend .& " messages to " &. user
+      putLog Debug $ "Messages: " &. messageToSend
+      sendMessageCloseProtected user (ServerNewMessages messageToSend)
+
+sendOnlineUsers :: 
+  ( Monad m
+  , WithExceptions m
+  , WithWebSocketProvider m
+  , WithAppState
+  , WithLogger m
+  , WithTimeProvider m
+  ) => UserSession -> m ()
+sendOnlineUsers user@UserSession { connection } = do
+  let AppState {..} = getAppState
+  now <- getTime
+  sendMessage connection $ ServerUsersOnline now $ map (\UserSession {..} -> User name sessionId) userSessions
+  putLog Debug $ "Sent online users: " &. userSessions
 
 updateUserState :: (Monad m, WithAppStateController m, WithLogger m) => UserSession -> Int -> m ()
 updateUserState UserSession { sessionId = currentSession, ..} lastMessage = do
@@ -210,7 +221,7 @@ updateUserState UserSession { sessionId = currentSession, ..} lastMessage = do
   putLog Debug $ "Last message set to " &. lastMessage
   where
     update user@UserSession {..} = if sessionId == currentSession 
-      then UserSession { acceptedMessage = lastMessage, .. }
+      then UserSession { acceptedMessage = max acceptedMessage lastMessage, .. }
       else user
 
 pingPong :: 
@@ -220,53 +231,59 @@ pingPong ::
   , WithAppStateController m
   , WithWebSocketProvider m
   , WithLogger m
+  , WithTimeProvider m
   ) => m ()
 pingPong = forever do
-  AppState {..} <- getAppState 
+  AppState {..} <- loadAppState 
   forM_ userSessions \user@UserSession {..} -> 
     sendMessageCloseProtected user (ServerPing "ping!")
   putLog Debug "Pinged all users"
   delay 10000000
 
--- client :: (WithWebSocketProvider IO, WithLogger IO) => Text -> IO ()
--- client name = runClient "localhost" 5002 "" \conn -> do
---   sendMessage conn (MyNameIs name)
---   forkIO $ forever $ receiveMessage conn >>= \case
---       Right (ServerPing msg) -> do
---         putLog Debug $ "Server sent ping with " &. msg
---         sendMessage conn (MyPong "pong")
---       Right (ServerMessage (ServerConnected session)) -> do
---         putLog Info $ "Conneted with " &. session .& " session"
---       Right (ServerMessage ServerRegistered) -> do
---         putLog Info $ "Registered"
---       Right (ServerMessage (ServerError err)) -> do
---         putLog Warning $ "Server sent error: " &. err
---       Right (ServerClose msg) -> do
---         putLog Warning $ "Server shuted out: " &. msg
---       Right (ServerMessage (ServerNewMessages msgs)) -> do
---         putLog Info $ "Server sent new messages: " &. msgs
---         sendMessage conn (AcceptedMessages $ maximum $ map Messages.messageId msgs)
---       Right (ServerPong msg) -> do
---         putLog Debug $ "Server sent pong with " &. msg
---       Left e -> print e 
+client :: (WithWebSocketProvider IO, WithLogger IO, WithThreading IO) => Text -> IO ()
+client name = runClient "localhost" 5003 "" \conn -> do
+  sendMessage conn (MyNameIs name)
+  fork $ forever $ receiveMessage conn >>= \case
+      Right (ServerPing msg) -> do
+        -- putLog Debug $ "Server sent ping with " &. msg
+        sendMessage conn (MyPong "pong")
+      Right (ServerMessage (ServerConnected session)) -> pure ()
+        -- putLog Info $ "Conneted with " &. session .& " session"
+      Right (ServerMessage ServerRegistered) -> pure ()
+        -- putLog Info $ "Registered"
+      Right (ServerMessage (ServerError err)) -> pure ()
+        -- putLog Warning $ "Server sent error: " &. err
+      Right (ServerClose msg) -> pure ()
+        -- putLog Warning $ "Server shuted out: " &. msg
+      Right (ServerMessage (ServerNewMessages msgs)) -> do
+        -- putLog Info $ "Server sent new messages: " &. msgs
+        sendMessage conn (AcceptedMessages $ maximum $ map Messages.messageId msgs)
+      Right (ServerPong msg) -> pure ()
+        -- putLog Debug $ "Server sent pong with " &. msg
+      Right (ServerMessage (ServerUsersOnline _ _)) -> pure ()
+      Left e -> print e 
  
---   forever $ do  
---     msg <- getLine
---     sendMessage conn (MyMessageIs $ pack msg)
+  forever $ do  
+    delay 1_000_000
+    sendMessage conn (MyMessageIs "message")
 
--- allH :: (( WithConfigLoader IO
---   , WithLogger IO
---   , WithAppStateController IO
---   , WithWebSocketProvider IO
---   , WithTimeProvider IO
---   ) => IO a) -> IO a
--- allH a = do
---   logger <- defaultLogger 
---   withConfigLoader (ConfigLoader (pure $ Config $ ServerConfig 5002 10))
---     $ withNewAppStateController 
---     $ withWebSocketProvider defaultWebSocketProvider 
---     $ withLogger logger
---     $ withDefaultTimeProvider a
+allH :: (( WithConfigLoader IO
+  , WithLogger IO
+  , WithAppStateController IO
+  , WithWebSocketProvider IO
+  , WithTimeProvider IO
+  , WithThreading IO
+  , WithExceptions IO
+  ) => IO a) -> IO a
+allH a = do
+  logger <- defaultLogger 
+  withConfigLoader (ConfigLoader (pure $ Config $ ServerConfig 5003 100))
+    $ withNewAppStateController 
+    $ withWebSocketProvider defaultWebSocketProvider 
+    $ withLogger logger
+    $ withDefaultTimeProvider
+    $ withIOThreadHandler
+    $ withIOExceptionHandler a
 
 sendMessageCloseProtected :: 
   ( Monad m
@@ -275,6 +292,7 @@ sendMessageCloseProtected ::
   , WithAppStateController m
   , WithLogger m
   , ToMessage a
+  , WithTimeProvider m
   ) => UserSession 
     -> a 
     -> m () 
@@ -285,4 +303,6 @@ sendMessageCloseProtected user@UserSession {..} m =
       ConnectionClosed -> do 
         putLog Warning $ user .& " is closed"
         deleteUser user
+        putLog Info "User deleted. Broadcastring.."
+        broadcast sendOnlineUsers
       e -> throw e 

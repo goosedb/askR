@@ -12,6 +12,7 @@ import GHC.Generics
 import Data.Aeson
 
 type WithAppStateController m = (?appStateController :: AppStateController m) 
+type WithAppState = (?appState :: AppState)
 
 data AppStateController m = AppStateController
   { withAppStateController :: forall a. (AppState -> m a) -> m a
@@ -36,6 +37,9 @@ data UserSession = UserSession
   , name             :: Text
   , acceptedMessage  :: Int }
 
+instance Show UserSession where
+  show UserSession {..} = show sessionId
+
 withNewAppStateController :: forall m a. MonadUnliftIO m => (WithAppStateController m => m a) -> m a
 withNewAppStateController action = do
   state <- liftIO $ newMVar $ AppState [] 0 0 []
@@ -45,10 +49,21 @@ withNewAppStateController action = do
         }
     in action
 
-getAppState :: (WithAppStateController m, Applicative m) => m AppState
-getAppState = 
+loadAppState :: (WithAppStateController m, Applicative m) => m AppState
+loadAppState = 
   let AppStateController {..} = ?appStateController
   in withAppStateController pure
+
+withLoadedAppState :: (WithAppStateController m, Monad m) => (WithAppState => m a) -> m a
+withLoadedAppState action = do
+  appState <- loadAppState
+  withAppState appState action
+
+withAppState :: AppState -> (WithAppState => a) -> a
+withAppState s a = let ?appState = s in a  
+
+getAppState :: WithAppState => AppState
+getAppState = ?appState
 
 modifyAppState :: (WithAppStateController m, Applicative m) => (AppState -> m (AppState, a)) -> m a
 modifyAppState f = 
@@ -59,8 +74,3 @@ modifyAppState_ :: (WithAppStateController m, Applicative m) => (AppState -> m A
 modifyAppState_ f = 
   let AppStateController {..} = ?appStateController
   in modifyAppStateController (fmap (,()) . f)
-
-withAppState :: WithAppStateController m => (AppState -> m a) -> m a
-withAppState f =  
-  let AppStateController {..} = ?appStateController
-  in withAppStateController f

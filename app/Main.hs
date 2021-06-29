@@ -2,11 +2,10 @@
 module Main where
 
 import Server
-import Data.Text
+-- import Data.Text
+-- import Control.Monad
+-- import Control.Concurrent
+import Client
 
 main :: IO ()
-main = do
-  foo <- getLine
-  if foo == "c" 
-    then getLine >>= \s -> allH $ client . pack $ s
-    else allH serverApp 
+main = Client.client -- Server.allH Server.serverApp

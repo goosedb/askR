@@ -1,4 +1,4 @@
-module Websockets where
+module WebSockets where
 
 import Network.WebSockets
 import Data.Aeson

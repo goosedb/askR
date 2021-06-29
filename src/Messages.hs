@@ -1,3 +1,4 @@
+{-# LANGUAGE DuplicateRecordFields #-}
 module Messages where
 
 import Data.Text.Encoding
@@ -47,8 +48,16 @@ data ServerMessage
   | ServerRegistered
   | ServerError Text
   | ServerNewMessages [UserMessage]
+  | ServerUsersOnline UTCTime [User]
   deriving (Generic, Show)
   
+data User = User 
+  { name :: Text
+  , sessionId :: Integer }
+  deriving (Generic, Show)
+
+instance FromJSON User
+instance ToJSON User
 
 instance FromJSON ServerMessage where
 
@@ -89,6 +98,9 @@ instance ToMessage MessageFromUser where
   toMessage (MyPong msg) = ControlMessage (Pong $ encode msg)
   toMessage (MyClose msg) = ControlMessage (Close 1000 $ encode msg)
 
+
+instance ToMessage Message where
+  toMessage = id
 
 instance ToMessage MyMessage where
   toMessage m = DataMessage False False False (Binary $ encode m)
